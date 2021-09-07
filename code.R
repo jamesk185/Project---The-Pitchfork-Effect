@@ -45,4 +45,45 @@ p4kdata3 <- bind_rows(p4kdata3)
 head(p4kdata3, n=30)
 
 
+PrevScorefn <- function(name){
+  artist <<- p4kdata3[p4kdata3$artist==name,]
+  y <<- NULL
+  if(nrow(artist)==1){
+    y <- NA
+    oneartist <- cbind(artist, PrevScore = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      a <- artist[x+1,]
+      b <- a$score
+      y <- c(y,b)
+    }
+    y <- c(y, NA)
+    oneartist <<- cbind(artist, PrevScore = y)
+  }
+}
 
+p4kdata4 <- lapply(artistnames, PrevScorefn)
+p4kdata4 <- bind_rows(p4kdata4)
+head(p4kdata4, n=30)
+
+
+PrevScoreAvgfn <- function(name){
+  artist <<- p4kdata4[p4kdata4$artist==name,]
+  y <<- NULL
+  if(nrow(artist)==1){
+    y <- NA
+    oneartist <- cbind(artist, PrevScoreAvg = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      a <- artist[(x+1):nrow(artist),]
+      b <- mean(a$score)
+      y <- c(y,b)
+    }
+    y <- c(y, NA)
+    oneartist <<- cbind(artist, PrevScoreAvg = y)
+  }
+}
+
+p4kdata5 <- lapply(artistnames, PrevScoreAvgfn)  
+p4kdata5 <- bind_rows(p4kdata5)  
+head(p4kdata5, n=30)
