@@ -10,6 +10,25 @@ p4kdata <- p4kdata %>% select(-link, -review)
 p4kdata$artist <- as.character(p4kdata$artist)
 p4kdata$date <- as.Date(p4kdata$date, format = "%B %d %Y")
 p4kdata <- p4kdata[order(desc(p4kdata$date)),]
+p4kdata$author <- p4kdata$author %>% 
+  gsub("\\s+|\\.|-|Ã©", "", .) 
+
+p4kdata$author[p4kdata$author=="DrAndyBeta"] <- "AndyBeta"
+p4kdata$author[p4kdata$author=="DrewGaerig"] <- "AndrewGaerig"
+p4kdata$author[p4kdata$author=="StephenMDeusner"] <- "StephenDeusner"
+p4kdata$author[p4kdata$author=="StephenMDuesner"] <- "StephenDeusner"
+p4kdata$author[p4kdata$author=="MarkRichardSan"] <- "MarkRichardson"
+p4kdata$author[p4kdata$author=="SavyReyesKulkarni"] <- "SabyReyesKulkarni"
+p4kdata$author[p4kdata$author=="PaulAThompson"] <- "PaulThompson"
+p4kdata$author[p4kdata$author=="SeanFennessy"] <- "SeanFennessey"
+p4kdata$author[p4kdata$author=="AlexLindhart"] <- "AlexLinhardt"
+p4kdata$author[p4kdata$author=="CoryDByrom"] <- "CoryByrom"
+p4kdata$author[p4kdata$author=="MarcusJMoore"] <- "MarcusMoore"
+p4kdata$author[p4kdata$author=="JeremyDLarson"] <- "JeremyLarson"
+
+approxnames <- lapply(unique(p4kdata$author), agrep, unique(p4kdata$author), value = TRUE)
+commonnames <- approxnames[lengths(approxnames) > 1]
+unlist(commonnames)
 
 
 artistnames <- unique(p4kdata$artist)
@@ -87,3 +106,25 @@ PrevScoreAvgfn <- function(name){
 p4kdata5 <- lapply(artistnames, PrevScoreAvgfn)  
 p4kdata5 <- bind_rows(p4kdata5)  
 head(p4kdata5, n=30)
+
+
+PrevAuthorSamefn <- function(name){
+  artist <<- p4kdata5[p4kdata5$artist==name,]
+  y <<- NULL
+  if(nrow(artist)==1){
+    y <- FALSE
+    oneartist <- cbind(artist, PrevAuthorSame = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      b <- identical(artist$author[x], artist$author[x+1])
+      y <- c(y,b)
+    }
+    y <- c(y, FALSE)
+    oneartist <<- cbind(artist, PrevAuthorSame = y)
+  }
+}
+
+p4kdata6 <- lapply(artistnames, PrevAuthorSamefn)  
+p4kdata6 <- bind_rows(p4kdata6)  
+head(p4kdata6, n=30)
+
