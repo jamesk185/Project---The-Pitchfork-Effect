@@ -12,6 +12,9 @@ p4kdata$date <- as.Date(p4kdata$date, format = "%B %d %Y")
 p4kdata <- p4kdata[order(desc(p4kdata$date)),]
 p4kdata$author <- p4kdata$author %>% 
   gsub("\\s+|\\.|-|Ã©", "", .) 
+p4kdata$role <- p4kdata$role %>% 
+  gsub("\\s$", "", .) %>%
+  as.factor(.)
 
 p4kdata$author[p4kdata$author=="DrAndyBeta"] <- "AndyBeta"
 p4kdata$author[p4kdata$author=="DrewGaerig"] <- "AndrewGaerig"
@@ -29,6 +32,8 @@ p4kdata$author[p4kdata$author=="JeremyDLarson"] <- "JeremyLarson"
 approxnames <- lapply(unique(p4kdata$author), agrep, unique(p4kdata$author), value = TRUE)
 commonnames <- approxnames[lengths(approxnames) > 1]
 unlist(commonnames)
+
+p4kdata$artist[p4kdata$artist==""] <- "NA"
 
 
 artistnames <- unique(p4kdata$artist)
@@ -170,4 +175,28 @@ p4kdata8 <- lapply(artistnames, TimeSincePrevfn)
 p4kdata8 <- bind_rows(p4kdata8)
 head(p4kdata8, n=30)
 
+
+PrevTwoScoreChangefn <- function(name){
+  artist <<- p4kdata8[p4kdata8$artist==name,]
+  y <<- NULL
+  if(nrow(artist) <= 2){
+    y <- NA
+    oneartist <- cbind(artist, PrevTwoScoreChange = y)
+  } else {
+    for(x in 1:(nrow(artist)-2)){
+      b <- artist$score[x+1]/artist$score[x+2]
+      y <- c(y,b)
+    }
+    y <- c(y, NA, NA)
+    oneartist <- cbind(artist, PrevTwoScoreChange = y)
+  }
+}
+
+p4kdata9 <- lapply(artistnames, PrevTwoScoreChangefn)
+p4kdata9 <- bind_rows(p4kdata9)
+head(p4kdata9, n=30)
+
+
+p4kdata9 <- p4kdata9 %>% mutate(PrevTwoScoreAppreciated = PrevTwoScoreChange > 1)
+head(p4kdata9, n=30)
 
