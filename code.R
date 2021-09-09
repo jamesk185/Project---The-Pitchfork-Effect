@@ -77,7 +77,7 @@ PrevScorefn <- function(name){
       y <- c(y,b)
     }
     y <- c(y, NA)
-    oneartist <<- cbind(artist, PrevScore = y)
+    oneartist <- cbind(artist, PrevScore = y)
   }
 }
 
@@ -99,7 +99,7 @@ PrevScoreAvgfn <- function(name){
       y <- c(y,b)
     }
     y <- c(y, NA)
-    oneartist <<- cbind(artist, PrevScoreAvg = y)
+    oneartist <- cbind(artist, PrevScoreAvg = y)
   }
 }
 
@@ -120,11 +120,54 @@ PrevAuthorSamefn <- function(name){
       y <- c(y,b)
     }
     y <- c(y, FALSE)
-    oneartist <<- cbind(artist, PrevAuthorSame = y)
+    oneartist <- cbind(artist, PrevAuthorSame = y)
   }
 }
 
 p4kdata6 <- lapply(artistnames, PrevAuthorSamefn)  
 p4kdata6 <- bind_rows(p4kdata6)  
 head(p4kdata6, n=30)
+
+
+PrevAuthorSameTotalfn <- function(name){
+  artist <<- p4kdata6[p4kdata6$artist==name,]
+  y <<- NULL
+  if(nrow(artist)==1){
+    y <- 0
+    oneartist <- cbind(artist, PrevAuthorSameTotal = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      b <- sum(artist$author[x]==artist$author[(x+1):nrow(artist)])
+      y <- c(y,b)
+    }
+    y <- c(y, 0)
+    oneartist <- cbind(artist, PrevAuthorSameTotal = y)
+  }
+}
+
+p4kdata7 <- lapply(artistnames, PrevAuthorSameTotalfn)  
+p4kdata7 <- bind_rows(p4kdata7)  
+head(p4kdata7, n=30)
+
+
+TimeSincePrevfn <- function(name){
+  artist <<- p4kdata7[p4kdata7$artist==name,]
+  y <<- NULL
+  if(nrow(artist)==1){
+    y <- NA
+    oneartist <- cbind(artist, TimeSincePrev = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      b <- artist$date[x]-artist$date[x+1]
+      y <- c(y,b)
+    }
+    y <- c(y, NA)
+    oneartist <- cbind(artist, TimeSincePrev = y)
+  }
+}
+
+p4kdata8 <- lapply(artistnames, TimeSincePrevfn)
+p4kdata8 <- bind_rows(p4kdata8)
+head(p4kdata8, n=30)
+
 
