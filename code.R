@@ -15,6 +15,7 @@ p4kdata$author <- p4kdata$author %>%
 p4kdata$role <- p4kdata$role %>% 
   gsub("\\s$", "", .) %>%
   as.factor(.)
+p4kdata$genre[p4kdata$genre==""] <- NA
 
 p4kdata$author[p4kdata$author=="DrAndyBeta"] <- "AndyBeta"
 p4kdata$author[p4kdata$author=="DrewGaerig"] <- "AndrewGaerig"
