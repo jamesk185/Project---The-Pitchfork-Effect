@@ -201,3 +201,5 @@ head(p4kdata9, n=30)
 p4kdata9 <- p4kdata9 %>% mutate(PrevTwoScoreAppreciated = PrevTwoScoreChange > 1)
 head(p4kdata9, n=30)
 
+
+saveRDS(p4kdata9, "./p4knewdata.rds")
