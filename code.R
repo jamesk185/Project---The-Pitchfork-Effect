@@ -202,4 +202,19 @@ p4kdata9 <- p4kdata9 %>% mutate(PrevTwoScoreAppreciated = PrevTwoScoreChange > 1
 head(p4kdata9, n=30)
 
 
+p4kdata9 <- p4kdata9 %>% mutate(GenreElectronic = grepl("Electronic", p4kdata9$genre),
+                                GenreExperimental = grepl("Experimental", p4kdata9$genre),
+                                GenreFolk = grepl("Folk", p4kdata9$genre),
+                                GenreCountry = grepl("Country", p4kdata9$genre),
+                                GenreGlobal = grepl("Global", p4kdata9$genre),
+                                GenreRock = grepl("Rock", p4kdata9$genre),
+                                GenreMetal = grepl("Metal", p4kdata9$genre),
+                                GenreRandB = grepl("R&B", p4kdata9$genre),
+                                GenrePop = grepl("Pop", p4kdata9$genre),
+                                GenreRap = grepl("Rap", p4kdata9$genre),
+                                GenreJazz = grepl("Jazz", p4kdata9$genre))
+head(p4kdata9, n=30)
+
+
 saveRDS(p4kdata9, "./p4knewdata.rds")
+

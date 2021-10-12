@@ -62,17 +62,21 @@ p4knewdata[which(is.infinite(p4knewdata$PrevTwoScoreChange)),]
 p4knewdata2 <- p4knewdata[-which(is.infinite(p4knewdata$PrevTwoScoreChange)),]
 
 ## a vector of the names of the variables we are interested in 
-interstedvars <- c("PrevTotal", "PrevBNMTotal", "PrevScore", "PrevScoreAvg", "PrevAuthorSame", "PrevAuthorSameTotal", "TimeSincePrev", "PrevTwoScoreChange", "PrevTwoScoreAppreciated")
+interestedvars <- p4knewdata %>% select(-score, -artist, -album, -genre, -date, -author, -role, -bnm, -label, -release_year) %>% names()
 
 ## a table of the correlations between score and each other variable respectively
 corTable <- NULL
-for(x in interstedvars){
+for(x in interestedvars){
   y <- p4knewdata2 %>% select(score, x) %>% na.omit() %>% cor()
   corTable <- rbind(corTable, y)
 }
-corTable <- corTable[-c(1,3,5,7,9,11,13,15,17),-2]
+corTable <- corTable[-seq(1, 2*length(interestedvars), by = 2),-2]
+corTable <- corTable %>% as.data.frame() %>% arrange(desc(.))
+colnames(corTable) <- "Correlation"
 corTable
 
+saveRDS(corTable, "./corTable.rds")
+  
 ## scatter plots of each variable against score with regression lines
 g1 <- p4knewdata %>% ggplot(aes(x=score, y=PrevTotal)) +
   geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
