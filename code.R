@@ -17,6 +17,14 @@ p4kdata$role <- p4kdata$role %>%
   as.factor(.)
 p4kdata$genre[p4kdata$genre==""] <- NA
 
+p4kdata$label <- gsub(" ", "", p4kdata$label)
+p4kdata$label <- gsub(",", " ", p4kdata$label)
+p4kdata$label <- tolower(p4kdata$label)
+for(x in 1:length(p4kdata$label)){
+  p4kdata$label[x] <- paste(unique(strsplit(p4kdata$label[x], " ")[[1]]), collapse = " ")
+}
+p4kdata$label[grep("^$", p4kdata$label)] <- "Unspecified"
+
 p4kdata$author[p4kdata$author=="DrAndyBeta"] <- "AndyBeta"
 p4kdata$author[p4kdata$author=="DrewGaerig"] <- "AndrewGaerig"
 p4kdata$author[p4kdata$author=="StephenMDeusner"] <- "StephenDeusner"
@@ -216,5 +224,20 @@ p4kdata9 <- p4kdata9 %>% mutate(GenreElectronic = grepl("Electronic", p4kdata9$g
 head(p4kdata9, n=30)
 
 
-saveRDS(p4kdata9, "./p4knewdata.rds")
+p4kdata9 <- p4kdata9 %>% add_column(LabelAvg = NA)
 
+for(x in 1:nrow(p4kdata9)){
+  datecutset <- p4kdata9 %>% slice(-x) %>% filter(date <= p4kdata9[x,]$date)
+  labelnames <- strsplit(p4kdata9[x,]$label, " ")[[1]]
+  a <- NULL
+  for(y in 1:length(labelnames)){
+    b <- datecutset[grepl(labelnames[y], datecutset$label),]
+    a <- rbind(a, b)
+  }
+  p4kdata9[x,]$LabelAvg <- mean(a$score)
+}
+
+head(p4kdata9, n=30)
+
+
+saveRDS(p4kdata9, "./p4knewdata.rds")

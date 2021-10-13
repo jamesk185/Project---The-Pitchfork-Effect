@@ -14,11 +14,11 @@ interestedvars2 <- paste(rownames(corTable), collapse="+")
 interestedvars2
 
 ## run step function to see which predictors should be included in the model
-step(lm(score~PrevScoreAvg+PrevScore+PrevBNMTotal+GenreExperimental+PrevAuthorSameTotal+PrevAuthorSame+PrevTotal+GenreJazz+GenreGlobal+GenreFolk+GenreCountry+GenreMetal+TimeSincePrev+GenreRandB+GenrePop+GenreRap+GenreElectronic+GenreRock,
+step(lm(score~PrevScoreAvg+PrevScore+LabelAvg+PrevBNMTotal+GenreExperimental+PrevAuthorSameTotal+PrevAuthorSame+PrevTotal+GenreJazz+GenreGlobal+GenreFolk+GenreCountry+GenreMetal+TimeSincePrev+GenreRandB+GenrePop+GenreRap+GenreElectronic+GenreRock,
         data=training),
      direction = "both")
 
-stepfit <- lm(formula = score ~ PrevScoreAvg + PrevScore + PrevBNMTotal + 
+stepfit <- lm(formula = score ~ PrevScoreAvg + PrevScore + LabelAvg + PrevBNMTotal + 
                 GenreExperimental + PrevAuthorSameTotal + GenreRandB + GenreRap + 
                 GenreElectronic + GenreRock, data = training)
 steppred <- predict(stepfit, testing)

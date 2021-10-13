@@ -86,8 +86,7 @@ g1 <- p4knewdata %>% ggplot(aes(x=score, y=PrevTotal)) +
   geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
   geom_smooth(method='lm', col="black")
 
-g2 <- p4knewdata %>%
-  ggplot(aes(x=score, y=PrevBNMTotal)) +
+g2 <- p4knewdata %>% ggplot(aes(x=score, y=PrevBNMTotal)) +
   geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
   geom_smooth(method='lm', col="black")
 
@@ -121,7 +120,11 @@ g9 <- p4knewdata %>% mutate(PrevTwoScoreAppreciated = as.numeric(PrevTwoScoreApp
   geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
   geom_smooth(method='lm', col="black")
 
-grid.arrange(g1, g2, g3, g4, g5, g6, g7, g8, g9, nrow = 3)
+g10 <- p4knewdata %>% ggplot(aes(x=score, y=LabelAvg)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+
+grid.arrange(g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, nrow = 4)
 
 
 colours <- brewer.pal(n = 11, name = "Paired")
