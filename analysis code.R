@@ -1,5 +1,6 @@
 library(tidyverse)
 library(gridExtra)
+library(RColorBrewer)
 
 ## removing albums by various artists
 p4knewdata <- readRDS("./p4knewdata.rds")
@@ -25,7 +26,7 @@ saveRDS(training, "./p4ktraining.rds")
 saveRDS(testing, "./p4ktesting.rds")
 saveRDS(TEST, "./p4kfinaltest.rds")
 
-
+## start from here
 rm(list = ls())
 
 p4knewdata <- readRDS("./p4knewdata.rds")
@@ -76,6 +77,9 @@ colnames(corTable) <- "Correlation"
 corTable
 
 saveRDS(corTable, "./corTable.rds")
+
+corTable <- readRDS("./corTable.rds")
+corTable
   
 ## scatter plots of each variable against score with regression lines
 g1 <- p4knewdata %>% ggplot(aes(x=score, y=PrevTotal)) +
@@ -118,4 +122,66 @@ g9 <- p4knewdata %>% mutate(PrevTwoScoreAppreciated = as.numeric(PrevTwoScoreApp
   geom_smooth(method='lm', col="black")
 
 grid.arrange(g1, g2, g3, g4, g5, g6, g7, g8, g9, nrow = 3)
+
+
+colours <- brewer.pal(n = 11, name = "Paired")
+
+## scatter plots of each genre variable against score with regression lines
+gg1 <- p4knewdata %>% mutate(GenreElectronic = as.numeric(GenreElectronic)) %>%
+  ggplot(aes(x=score, y=GenreElectronic)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[1]) +
+  geom_smooth(method='lm', col="black")
+
+gg2 <- p4knewdata %>% mutate(GenreExperimental = as.numeric(GenreExperimental)) %>%
+  ggplot(aes(x=score, y=GenreExperimental)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[2]) +
+  geom_smooth(method='lm', col="black")
+
+gg3 <- p4knewdata %>% mutate(GenreFolk = as.numeric(GenreFolk)) %>%
+  ggplot(aes(x=score, y=GenreFolk)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[3]) +
+  geom_smooth(method='lm', col="black")
+
+gg4 <- p4knewdata %>% mutate(GenreCountry = as.numeric(GenreCountry)) %>%
+  ggplot(aes(x=score, y=GenreCountry)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[4]) +
+  geom_smooth(method='lm', col="black")
+
+gg5 <- p4knewdata %>% mutate(GenreGlobal = as.numeric(GenreGlobal)) %>%
+  ggplot(aes(x=score, y=GenreGlobal)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[5]) +
+  geom_smooth(method='lm', col="black")
+
+gg6 <- p4knewdata %>% mutate(GenreRock = as.numeric(GenreRock)) %>%
+  ggplot(aes(x=score, y=GenreRock)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[6]) +
+  geom_smooth(method='lm', col="black")
+
+gg7 <- p4knewdata %>% mutate(GenreMetal = as.numeric(GenreMetal)) %>%
+  ggplot(aes(x=score, y=GenreMetal)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[7]) +
+  geom_smooth(method='lm', col="black")
+
+gg8 <- p4knewdata %>% mutate(GenreRandB = as.numeric(GenreRandB)) %>%
+  ggplot(aes(x=score, y=GenreRandB)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[8]) +
+  geom_smooth(method='lm', col="black")
+
+gg9 <- p4knewdata %>% mutate(GenrePop = as.numeric(GenrePop)) %>%
+  ggplot(aes(x=score, y=GenrePop)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[9]) +
+  geom_smooth(method='lm', col="black")
+
+gg10 <- p4knewdata %>% mutate(GenreRap = as.numeric(GenreRap)) %>%
+  ggplot(aes(x=score, y=GenreRap)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[10]) +
+  geom_smooth(method='lm', col="black")
+
+gg11 <- p4knewdata %>% mutate(GenreJazz = as.numeric(GenreJazz)) %>%
+  ggplot(aes(x=score, y=GenreJazz)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[11]) +
+  geom_smooth(method='lm', col="black")
+
+paste("gg", 1:11, sep="", collapse=", ")
+grid.arrange(gg1, gg2, gg3, gg4, gg5, gg6, gg7, gg8, gg9, gg10, gg11, nrow=4)
 
