@@ -18,11 +18,11 @@ step(lm(score~PrevScoreAvg+PrevScore+LabelAvg+LabelPrev+PrevBNMTotal+GenreExperi
         data=training),
      direction = "both")
 
-stepfit <- lm(formula = score ~ PrevScoreAvg + PrevScore + LabelAvg + PrevBNMTotal + 
+STEPfit <- lm(formula = score ~ PrevScoreAvg + PrevScore + LabelAvg + PrevBNMTotal + 
                 GenreExperimental + PrevAuthorSameTotal + LabelTotal + GenreRandB + 
                 GenreRap + GenreElectronic + GenreRock, data = training)
-steppred <- predict(stepfit, testing)
-mean(abs(steppred-testing$score))
+STEPpred <- predict(STEPfit, testing)
+mean(abs(STEPpred-testing$score))
 
 ## linear regression models predicting score
 PREVSCOREONLYfit <- lm(score~PrevScore, data=training)
@@ -55,4 +55,19 @@ mean(abs(RFpred-testing$score))
 GBMfit <- train(score~., method="gbm", data=training2, trControl=control, verbose=FALSE)
 GBMpred <- predict(GBMfit, testing)
 mean(abs(GBMpred-testing$score))
+
+## summaries and anova function
+summary(STEPfit)
+summary(GBMfit)
+anova(STEPfit, test="Chisq")
+
+STEPfit2 <- lm(formula = score ~ PrevScoreAvg + PrevScore + LabelAvg + PrevBNMTotal + 
+                GenreExperimental + PrevAuthorSameTotal + LabelTotal + GenreElectronic + GenreRock, data = training)
+STEPpred2 <- predict(STEPfit2, testing)
+mean(abs(STEPpred2-testing$score))
+
+summary(STEPfit2)
+anova(STEPfit2, test="Chisq")
+
+
 
