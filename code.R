@@ -58,10 +58,6 @@ p4kdata$author[p4kdata$author=="CoryDByrom"] <- "CoryByrom"
 p4kdata$author[p4kdata$author=="MarcusJMoore"] <- "MarcusMoore"
 p4kdata$author[p4kdata$author=="JeremyDLarson"] <- "JeremyLarson"
 
-approxnames <- lapply(unique(p4kdata$author), agrep, unique(p4kdata$author), value = TRUE)
-commonnames <- approxnames[lengths(approxnames) > 1]
-unlist(commonnames)
-
 p4kdata$artist[p4kdata$artist==""] <- "NA"
 
 
@@ -296,16 +292,6 @@ for(x in 1:nrow(p4kdata9)){
 head(p4kdata9, n=30)
 
 p4kdata9[p4kdata9$label=="self-released",]$LabelTotal <- 0
-
-
-saveRDS(p4kdata9, "./p4kdata9.rds")
-
-p4kdata9 <- readRDS("./p4kdata9.rds")
-
-
-
-
-
 
 
 saveRDS(p4kdata9, "./p4knewdata.rds")

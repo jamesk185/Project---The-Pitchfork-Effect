@@ -1,0 +1,86 @@
+---
+title: "Pitchfork Score Prediction"
+author: "James Kowalik"
+date: "14/10/2021"
+output: html_document
+---
+
+## Cleaning the Data
+
+For the various needs of the prediction model, during the analysis process I discovered multiple ways that the original data needed reshaping.
+
+```{r, eval=FALSE}
+library(tidyverse)
+URL <- "https://dl.dropboxusercontent.com/s/cqf7cgxh91eoeyn/pitchfork.csv"
+if(!file.exists("./pitchfork.csv")){download.file(URL, "./pitchfork.csv")}
+p4kdata <- read.csv("./pitchfork.csv")
+```
+
+Here I remove some unnecessary variables, change data classes and formats, reorder all of the data by date of review and fix some formatting issues.
+
+```{r, eval=FALSE}
+p4kdata <- p4kdata %>% select(-link, -review)
+p4kdata$artist <- as.character(p4kdata$artist)
+p4kdata$date <- as.Date(p4kdata$date, format = "%B %d %Y")
+p4kdata <- p4kdata[order(desc(p4kdata$date)),]
+p4kdata$author <- p4kdata$author %>% 
+  gsub("\\s+|\\.|-|Ã©", "", .) 
+p4kdata$role <- p4kdata$role %>% 
+  gsub("\\s$", "", .) %>%
+  as.factor(.)
+p4kdata$genre[p4kdata$genre==""] <- NA
+```
+
+For the `label` variable, a variety of formatting issues arose when creating more variables that use `label`. This meant having to change punctuation, make use of spaces and deal with specific issues, namely one letter record labels and albums that were co-released on two labels.
+
+```{r, eval=FALSE}
+p4kdata$label <- gsub(" ", "", p4kdata$label)
+p4kdata$label <- gsub(",", " ", p4kdata$label)
+p4kdata$label <- tolower(p4kdata$label)
+for(x in 1:length(p4kdata$label)){
+  p4kdata$label[x] <- paste(unique(strsplit(p4kdata$label[x], " ")[[1]]), collapse = " ")
+}
+p4kdata$label[grep("^$", p4kdata$label)] <- "Unspecified"
+
+p4kdata[grep("^k$", p4kdata$label),]$label <-"krecords"
+p4kdata[grep("^a$", p4kdata$label),]$label <-"arecords"
+p4kdata$label <- gsub("^k ", "krecords ", p4kdata$label)
+
+p4kdata[grep("father/daughter", p4kdata$label),]$label <-"fatherdaughter"
+p4kdata[grep("ever/never", p4kdata$label),]$label <-"evernever"
+p4kdata[grep("i/am/me", p4kdata$label),]$label <-"iamme"
+p4kdata[grep("bar/none", p4kdata$label),]$label <-"barnone"
+p4kdata[grep("local331/3", p4kdata$label),]$label <-"local3313"
+p4kdata[grep("sciona/v", p4kdata$label),]$label <-"scionav"
+p4kdata[grep("^feel$", p4kdata$label),]$label <-"feelrecords"
+p4kdata[grep("20/20/20", p4kdata$label),]$label <-"202020"
+p4kdata[grep("fe/hardboiled", p4kdata$label),]$label <-"fehardboiled"
+p4kdata[grep("anti-", p4kdata$label),]$label <-"antiminus"
+
+p4kdata$label <- gsub("/", " ", p4kdata$label)
+p4kdata$label <- gsub("[^0-9a-z[[:space:]]]", "", p4kdata$label)
+p4kdata$label <- gsub("self-released ", "", p4kdata$label)
+p4kdata$label <- gsub(" self-released", "", p4kdata$label)
+```
+
+For the review authors, there were some spelling errors detected that had to be corrected. Finally, in the last line of code, I also assigned artists with no names to `NA`.
+
+```{r, eval=FALSE}
+p4kdata$author[p4kdata$author=="DrAndyBeta"] <- "AndyBeta"
+p4kdata$author[p4kdata$author=="DrewGaerig"] <- "AndrewGaerig"
+p4kdata$author[p4kdata$author=="StephenMDeusner"] <- "StephenDeusner"
+p4kdata$author[p4kdata$author=="StephenMDuesner"] <- "StephenDeusner"
+p4kdata$author[p4kdata$author=="MarkRichardSan"] <- "MarkRichardson"
+p4kdata$author[p4kdata$author=="SavyReyesKulkarni"] <- "SabyReyesKulkarni"
+p4kdata$author[p4kdata$author=="PaulAThompson"] <- "PaulThompson"
+p4kdata$author[p4kdata$author=="SeanFennessy"] <- "SeanFennessey"
+p4kdata$author[p4kdata$author=="AlexLindhart"] <- "AlexLinhardt"
+p4kdata$author[p4kdata$author=="CoryDByrom"] <- "CoryByrom"
+p4kdata$author[p4kdata$author=="MarcusJMoore"] <- "MarcusMoore"
+p4kdata$author[p4kdata$author=="JeremyDLarson"] <- "JeremyLarson"
+
+p4kdata$artist[p4kdata$artist==""] <- "NA"
+```
+
+
+
