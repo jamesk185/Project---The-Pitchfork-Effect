@@ -13,7 +13,7 @@ p4knewdata <- readRDS("./p4knewdata.rds")
 ## two variables removed as they have two many na values
 TEST <- p4knewdata %>% filter(date < "2019-02-01", date > "2018-01-01") %>% select(-PrevTwoScoreAppreciated, -PrevTwoScoreChange)
 testing <- p4knewdata %>% filter(date <= "2018-01-01", date > "2014-01-01") %>% select(-PrevTwoScoreAppreciated, -PrevTwoScoreChange)
-training <- p4knewdata %>% filter(date <= "2014-01-01", date > "2004-01-01") %>% select(-PrevTwoScoreAppreciated, -PrevTwoScoreChange)
+training <- p4knewdata %>% filter(date <= "2014-01-01", date > "2003-01-01") %>% select(-PrevTwoScoreAppreciated, -PrevTwoScoreChange)
 nrow(training)/(nrow(training)+nrow(testing))
 
 ## removing na values
@@ -124,7 +124,15 @@ g10 <- p4knewdata %>% ggplot(aes(x=score, y=LabelAvg)) +
   geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
   geom_smooth(method='lm', col="black")
 
-grid.arrange(g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, nrow = 4)
+g11 <- p4knewdata %>% ggplot(aes(x=score, y=LabelPrev)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+
+g12 <- p4knewdata %>% ggplot(aes(x=score, y=LabelTotal)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+
+grid.arrange(g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, nrow = 4)
 
 
 colours <- brewer.pal(n = 11, name = "Paired")

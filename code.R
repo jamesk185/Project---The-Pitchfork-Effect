@@ -25,6 +25,26 @@ for(x in 1:length(p4kdata$label)){
 }
 p4kdata$label[grep("^$", p4kdata$label)] <- "Unspecified"
 
+p4kdata[grep("^k$", p4kdata$label),]$label <-"krecords"
+p4kdata[grep("^a$", p4kdata$label),]$label <-"arecords"
+p4kdata$label <- gsub("^k ", "krecords ", p4kdata$label)
+
+p4kdata[grep("father/daughter", p4kdata$label),]$label <-"fatherdaughter"
+p4kdata[grep("ever/never", p4kdata$label),]$label <-"evernever"
+p4kdata[grep("i/am/me", p4kdata$label),]$label <-"iamme"
+p4kdata[grep("bar/none", p4kdata$label),]$label <-"barnone"
+p4kdata[grep("local331/3", p4kdata$label),]$label <-"local3313"
+p4kdata[grep("sciona/v", p4kdata$label),]$label <-"scionav"
+p4kdata[grep("^feel$", p4kdata$label),]$label <-"feelrecords"
+p4kdata[grep("20/20/20", p4kdata$label),]$label <-"202020"
+p4kdata[grep("fe/hardboiled", p4kdata$label),]$label <-"fehardboiled"
+p4kdata[grep("anti-", p4kdata$label),]$label <-"antiminus"
+
+p4kdata$label <- gsub("/", " ", p4kdata$label)
+p4kdata$label <- gsub("[^0-9a-z[[:space:]]]", "", p4kdata$label)
+p4kdata$label <- gsub("self-released ", "", p4kdata$label)
+p4kdata$label <- gsub(" self-released", "", p4kdata$label)
+
 p4kdata$author[p4kdata$author=="DrAndyBeta"] <- "AndyBeta"
 p4kdata$author[p4kdata$author=="DrewGaerig"] <- "AndrewGaerig"
 p4kdata$author[p4kdata$author=="StephenMDeusner"] <- "StephenDeusner"
@@ -231,13 +251,61 @@ for(x in 1:nrow(p4kdata9)){
   labelnames <- strsplit(p4kdata9[x,]$label, " ")[[1]]
   a <- NULL
   for(y in 1:length(labelnames)){
-    b <- datecutset[grepl(labelnames[y], datecutset$label),]
+    b <- datecutset[grepl(paste0("\\b", labelnames[y], "\\b"), datecutset$label),]
     a <- rbind(a, b)
   }
+  a <- a[!duplicated(a),]
   p4kdata9[x,]$LabelAvg <- mean(a$score)
 }
 
 head(p4kdata9, n=30)
+
+
+p4kdata9 <- p4kdata9 %>% add_column(LabelPrev = NA)
+
+for(x in 1:nrow(p4kdata9)){
+  datecutset <- p4kdata9 %>% slice(-x) %>% filter(date <= p4kdata9[x,]$date)
+  labelnames <- strsplit(p4kdata9[x,]$label, " ")[[1]]
+  a <- NULL
+  for(y in 1:length(labelnames)){
+    b <- datecutset[grepl(paste0("\\b", labelnames[y], "\\b"), datecutset$label),]
+    a <- rbind(a, b)
+  }
+  a <- a[!duplicated(a),]
+  a <- a %>% arrange(desc(date))
+  p4kdata9[x,]$LabelPrev <- a[1,]$score
+}
+
+head(p4kdata9, n=30)
+
+
+p4kdata9 <- p4kdata9 %>% add_column(LabelTotal = NA)
+
+for(x in 1:nrow(p4kdata9)){
+  datecutset <- p4kdata9 %>% slice(-x) %>% filter(date <= p4kdata9[x,]$date)
+  labelnames <- strsplit(p4kdata9[x,]$label, " ")[[1]]
+  a <- NULL
+  for(y in 1:length(labelnames)){
+    b <- datecutset[grepl(paste0("\\b", labelnames[y], "\\b"), datecutset$label),]
+    a <- rbind(a, b)
+  }
+  a <- a[!duplicated(a),]
+  p4kdata9[x,]$LabelTotal <- nrow(a)
+}
+
+head(p4kdata9, n=30)
+
+p4kdata9[p4kdata9$label=="self-released",]$LabelTotal <- 0
+
+
+saveRDS(p4kdata9, "./p4kdata9.rds")
+
+p4kdata9 <- readRDS("./p4kdata9.rds")
+
+
+
+
+
 
 
 saveRDS(p4kdata9, "./p4knewdata.rds")
