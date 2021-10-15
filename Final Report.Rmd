@@ -2,7 +2,10 @@
 title: "Pitchfork Score Prediction"
 author: "James Kowalik"
 date: "14/10/2021"
-output: html_document
+output: 
+  html_document :
+    toc: true
+    theme: united
 ---
 
 ## Introduction
@@ -352,3 +355,27 @@ Finally, let's take a look at the same entry we saw early with the new variables
 p4knewdata <- readRDS("./p4knewdata.rds")
 p4knewdata[which(p4knewdata$album==p4kdata[104,]$album),]
 ```
+
+## Analysis and Exploration
+
+To begin with, I perform some final cleaning by removing albums by `Various Artists` and removing the variables `PrevTwoScoreAppreciated` and `PrevTwoScoreChange`. The reason for removing these variables is that they contain too many `NA` values and in removing the NAs the datasets become too small and thus the models less reliable. I then create a testing set to measure model proficiency against and a final test set to provide a final display of the model's work. Also note that the datasets were saved as R objects and I load them below, followed by showing the proportional size of the training set.
+
+```{r, eval=FALSE}
+library(gridExtra)
+library(RColorBrewer)
+p4knewdata <- p4knewdata[p4knewdata$artist!="Various Artists",]
+TEST <- p4knewdata %>% filter(date < "2019-02-01", date > "2018-01-01") %>% select(-PrevTwoScoreAppreciated, -PrevTwoScoreChange)
+testing <- p4knewdata %>% filter(date <= "2018-01-01", date > "2014-01-01") %>% select(-PrevTwoScoreAppreciated, -PrevTwoScoreChange)
+training <- p4knewdata %>% filter(date <= "2014-01-01", date > "2003-01-01") %>% select(-PrevTwoScoreAppreciated, -PrevTwoScoreChange)
+training <- na.omit(training)
+testing <- na.omit(testing)
+TEST <- na.omit(TEST)
+```
+```{r}
+p4knewdata <- readRDS("./p4knewdata.rds")
+training <- readRDS("./p4ktraining.rds")
+testing <- readRDS("./p4ktesting.rds")
+finaltest <- readRDS("./p4kfinaltest.rds")
+nrow(training)/(nrow(training)+nrow(testing))
+```
+
