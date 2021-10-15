@@ -5,21 +5,28 @@ date: "14/10/2021"
 output: html_document
 ---
 
+## Introduction
+
+
+
 ## Cleaning the Data
 
-For the various needs of the prediction model, during the analysis process I discovered multiple ways that the original data needed reshaping.
+For the various needs of the prediction model, during the analysis process I discovered multiple ways that the original data needed reshaping. I will remove some unnecessary variables and show what the data looks like.
 
 ```{r, eval=FALSE}
-library(tidyverse)
 URL <- "https://dl.dropboxusercontent.com/s/cqf7cgxh91eoeyn/pitchfork.csv"
 if(!file.exists("./pitchfork.csv")){download.file(URL, "./pitchfork.csv")}
+```
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
 p4kdata <- read.csv("./pitchfork.csv")
+p4kdata <- p4kdata %>% select(-link, -review)
+head(p4kdata)
 ```
 
-Here I remove some unnecessary variables, change data classes and formats, reorder all of the data by date of review and fix some formatting issues.
+Here I change data classes and formats, reorder all of the data by date of review and fix some formatting issues.
 
 ```{r, eval=FALSE}
-p4kdata <- p4kdata %>% select(-link, -review)
 p4kdata$artist <- as.character(p4kdata$artist)
 p4kdata$date <- as.Date(p4kdata$date, format = "%B %d %Y")
 p4kdata <- p4kdata[order(desc(p4kdata$date)),]
@@ -82,5 +89,266 @@ p4kdata$author[p4kdata$author=="JeremyDLarson"] <- "JeremyLarson"
 p4kdata$artist[p4kdata$artist==""] <- "NA"
 ```
 
+## Writing Functions
 
+Next I look to creating new variables that will, potentially, become predictors in my model. This will involve writing functions, using for-loops, etc. Here I create a variable with all artist's names.
+```{r, eval=FALSE}
+artistnames <- unique(p4kdata$artist)
+```
 
+First, I will create a variable `PrevTotal` which has the total number of previous reviews the artist has had.
+```{r, eval=FALSE}
+PrevTotalfn <- function(name){
+  artist <<- p4kdata[p4kdata$artist==name,]
+  y <<- NULL
+  for(x in 1:nrow(artist)){
+    z <- sum(artist$date < artist$date[x])
+    y <- c(y,z)
+  }
+  oneartist <<- cbind(artist, PrevTotal = y)
+}
+
+p4kdata2 <- lapply(artistnames, PrevTotalfn)
+p4kdata2 <- bind_rows(p4kdata2)
+```
+
+Now a variable `PrevBNMTotal` which has the total number of BNMs previously given to the artist.
+```{r, eval=FALSE}
+PrevBNMTotalfn <- function(name){
+  artist <<- p4kdata2[p4kdata2$artist==name,]
+  y <<- NULL
+  for(x in 1:nrow(artist)){
+    a <- artist[artist$date < artist$date[x],]
+    b <- sum(a$bnm)
+    y <- c(y,b)
+  }
+  oneartist <<- cbind(artist, PrevBNMTotal = y)
+}
+
+p4kdata3 <- lapply(artistnames, PrevBNMTotalfn)
+p4kdata3 <- bind_rows(p4kdata3)
+```
+
+Now a variable `PrevScore` which is the score given to the artist's most recently reviewed album.
+```{r,eval=FALSE}
+PrevScorefn <- function(name){
+  artist <<- p4kdata3[p4kdata3$artist==name,]
+  y <<- NULL
+  if(nrow(artist)==1){
+    y <- NA
+    oneartist <- cbind(artist, PrevScore = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      a <- artist[x+1,]
+      b <- a$score
+      y <- c(y,b)
+    }
+    y <- c(y, NA)
+    oneartist <- cbind(artist, PrevScore = y)
+  }
+}
+
+p4kdata4 <- lapply(artistnames, PrevScorefn)
+p4kdata4 <- bind_rows(p4kdata4)
+```
+
+Now a variable `PrevScoreAvg` which is the mean of all of the artists previously received scores.
+```{r, eval=FALSE}
+PrevScoreAvgfn <- function(name){
+  artist <<- p4kdata4[p4kdata4$artist==name,]
+  y <<- NULL
+  if(nrow(artist)==1){
+    y <- NA
+    oneartist <- cbind(artist, PrevScoreAvg = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      a <- artist[(x+1):nrow(artist),]
+      b <- mean(a$score)
+      y <- c(y,b)
+    }
+    y <- c(y, NA)
+    oneartist <- cbind(artist, PrevScoreAvg = y)
+  }
+}
+
+p4kdata5 <- lapply(artistnames, PrevScoreAvgfn)  
+p4kdata5 <- bind_rows(p4kdata5)  
+```
+
+Now a variable `PrevAuthorSame` which indicates whether the previous review for the artist was written by the same author or not.
+```{r, eval=FALSE}
+PrevAuthorSamefn <- function(name){
+  artist <<- p4kdata5[p4kdata5$artist==name,]
+  y <<- NULL
+  if(nrow(artist)==1){
+    y <- FALSE
+    oneartist <- cbind(artist, PrevAuthorSame = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      b <- identical(artist$author[x], artist$author[x+1])
+      y <- c(y,b)
+    }
+    y <- c(y, FALSE)
+    oneartist <- cbind(artist, PrevAuthorSame = y)
+  }
+}
+
+p4kdata6 <- lapply(artistnames, PrevAuthorSamefn)  
+p4kdata6 <- bind_rows(p4kdata6)  
+```
+
+Now a variable `PrevAuthorSameTotal` which indicates the number of times the same author has previously reviewd this artist.
+```{r, eval=FALSE}
+PrevAuthorSameTotalfn <- function(name){
+  artist <<- p4kdata6[p4kdata6$artist==name,]
+  y <<- NULL
+  if(nrow(artist)==1){
+    y <- 0
+    oneartist <- cbind(artist, PrevAuthorSameTotal = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      b <- sum(artist$author[x]==artist$author[(x+1):nrow(artist)])
+      y <- c(y,b)
+    }
+    y <- c(y, 0)
+    oneartist <- cbind(artist, PrevAuthorSameTotal = y)
+  }
+}
+
+p4kdata7 <- lapply(artistnames, PrevAuthorSameTotalfn)  
+p4kdata7 <- bind_rows(p4kdata7)  
+```
+
+Now a variable `TimeSincePrev` which shows how many days have elapsed since the artist was last reviewed.
+```{r, eval=FALSE}
+TimeSincePrevfn <- function(name){
+  artist <<- p4kdata7[p4kdata7$artist==name,]
+  y <<- NULL
+  if(nrow(artist)==1){
+    y <- NA
+    oneartist <- cbind(artist, TimeSincePrev = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      b <- artist$date[x]-artist$date[x+1]
+      y <- c(y,b)
+    }
+    y <- c(y, NA)
+    oneartist <- cbind(artist, TimeSincePrev = y)
+  }
+}
+
+p4kdata8 <- lapply(artistnames, TimeSincePrevfn)
+p4kdata8 <- bind_rows(p4kdata8)
+```
+
+Now a variable `PrevTwoScoreChange` which shows the percentage growth or decline in score over the two reviews prior.
+```{r, eval=FALSE}
+PrevTwoScoreChangefn <- function(name){
+  artist <<- p4kdata8[p4kdata8$artist==name,]
+  y <<- NULL
+  if(nrow(artist) <= 2){
+    y <- NA
+    oneartist <- cbind(artist, PrevTwoScoreChange = y)
+  } else {
+    for(x in 1:(nrow(artist)-2)){
+      b <- artist$score[x+1]/artist$score[x+2]
+      y <- c(y,b)
+    }
+    y <- c(y, NA, NA)
+    oneartist <- cbind(artist, PrevTwoScoreChange = y)
+  }
+}
+
+p4kdata9 <- lapply(artistnames, PrevTwoScoreChangefn)
+p4kdata9 <- bind_rows(p4kdata9)
+```
+
+Now a variable `PrevTwoScoreAppreciated` which indicates whether the two scores prior showed an increase or a decrease in score.
+```{r, eval=FALSE}
+p4kdata9 <- p4kdata9 %>% mutate(PrevTwoScoreAppreciated = PrevTwoScoreChange > 1)
+```
+
+Now variables for genre. Originally, in the data, we have a `genre` variable, however problems arise as, in many cases, more than one genre is assigned to each album. For instance, see below.
+```{r}
+p4kdata[104,]
+```
+
+Thus I create a separate variable for each genre indicating whether this genre, be it alone or alongside other genres, appears in the album's genre tag.
+```{r, eval=FALSE}
+p4kdata9 <- p4kdata9 %>% mutate(GenreElectronic = grepl("Electronic", p4kdata9$genre),
+                                GenreExperimental = grepl("Experimental", p4kdata9$genre),
+                                GenreFolk = grepl("Folk", p4kdata9$genre),
+                                GenreCountry = grepl("Country", p4kdata9$genre),
+                                GenreGlobal = grepl("Global", p4kdata9$genre),
+                                GenreRock = grepl("Rock", p4kdata9$genre),
+                                GenreMetal = grepl("Metal", p4kdata9$genre),
+                                GenreRandB = grepl("R&B", p4kdata9$genre),
+                                GenrePop = grepl("Pop", p4kdata9$genre),
+                                GenreRap = grepl("Rap", p4kdata9$genre),
+                                GenreJazz = grepl("Jazz", p4kdata9$genre))
+```
+
+Now, using for-loops this time, a variable `LabelAvg` showing what the average of previous scores of reviews for this label is.
+```{r, eval=FALSE}
+p4kdata9 <- p4kdata9 %>% add_column(LabelAvg = NA)
+
+for(x in 1:nrow(p4kdata9)){
+  datecutset <- p4kdata9 %>% slice(-x) %>% filter(date <= p4kdata9[x,]$date)
+  labelnames <- strsplit(p4kdata9[x,]$label, " ")[[1]]
+  a <- NULL
+  for(y in 1:length(labelnames)){
+    b <- datecutset[grepl(paste0("\\b", labelnames[y], "\\b"), datecutset$label),]
+    a <- rbind(a, b)
+  }
+  a <- a[!duplicated(a),]
+  p4kdata9[x,]$LabelAvg <- mean(a$score)
+}
+```
+
+Now a variable `LabelPrev` which shows the score that this label's previous review received. 
+```{r, eval=FALSE}
+p4kdata9 <- p4kdata9 %>% add_column(LabelPrev = NA)
+
+for(x in 1:nrow(p4kdata9)){
+  datecutset <- p4kdata9 %>% slice(-x) %>% filter(date <= p4kdata9[x,]$date)
+  labelnames <- strsplit(p4kdata9[x,]$label, " ")[[1]]
+  a <- NULL
+  for(y in 1:length(labelnames)){
+    b <- datecutset[grepl(paste0("\\b", labelnames[y], "\\b"), datecutset$label),]
+    a <- rbind(a, b)
+  }
+  a <- a[!duplicated(a),]
+  a <- a %>% arrange(desc(date))
+  p4kdata9[x,]$LabelPrev <- a[1,]$score
+}
+```
+
+Now a variable `LabelTotal` which shows the total of how many reviews the label has previously received. 
+```{r, eval=FALSE}
+p4kdata9 <- p4kdata9 %>% add_column(LabelTotal = NA)
+
+for(x in 1:nrow(p4kdata9)){
+  datecutset <- p4kdata9 %>% slice(-x) %>% filter(date <= p4kdata9[x,]$date)
+  labelnames <- strsplit(p4kdata9[x,]$label, " ")[[1]]
+  a <- NULL
+  for(y in 1:length(labelnames)){
+    b <- datecutset[grepl(paste0("\\b", labelnames[y], "\\b"), datecutset$label),]
+    a <- rbind(a, b)
+  }
+  a <- a[!duplicated(a),]
+  p4kdata9[x,]$LabelTotal <- nrow(a)
+}
+
+p4kdata9[p4kdata9$label=="self-released",]$LabelTotal <- 0
+```
+
+I save as an r-object for ease of future use. 
+```{r, eval=FALSE}
+saveRDS(p4kdata9, "./p4knewdata.rds")
+```
+
+Finally, let's take a look at the same entry we saw early with the new variables added.
+```{r}
+p4knewdata <- readRDS("./p4knewdata.rds")
+p4knewdata[which(p4knewdata$album==p4kdata[104,]$album),]
+```

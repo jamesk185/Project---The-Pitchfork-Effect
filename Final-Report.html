@@ -355,16 +355,41 @@ pre code {
 </div>
 
 
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+</div>
 <div id="cleaning-the-data" class="section level2">
 <h2>Cleaning the Data</h2>
-<p>For the various needs of the prediction model, during the analysis process I discovered multiple ways that the original data needed reshaping.</p>
+<p>For the various needs of the prediction model, during the analysis process I discovered multiple ways that the original data needed reshaping. I will remove some unnecessary variables and show what the data looks like.</p>
+<pre class="r"><code>URL &lt;- &quot;https://dl.dropboxusercontent.com/s/cqf7cgxh91eoeyn/pitchfork.csv&quot;
+if(!file.exists(&quot;./pitchfork.csv&quot;)){download.file(URL, &quot;./pitchfork.csv&quot;)}</code></pre>
 <pre class="r"><code>library(tidyverse)
-URL &lt;- &quot;https://dl.dropboxusercontent.com/s/cqf7cgxh91eoeyn/pitchfork.csv&quot;
-if(!file.exists(&quot;./pitchfork.csv&quot;)){download.file(URL, &quot;./pitchfork.csv&quot;)}
-p4kdata &lt;- read.csv(&quot;./pitchfork.csv&quot;)</code></pre>
-<p>Here I remove some unnecessary variables, change data classes and formats, reorder all of the data by date of review and fix some formatting issues.</p>
-<pre class="r"><code>p4kdata &lt;- p4kdata %&gt;% select(-link, -review)
-p4kdata$artist &lt;- as.character(p4kdata$artist)
+p4kdata &lt;- read.csv(&quot;./pitchfork.csv&quot;)
+p4kdata &lt;- p4kdata %&gt;% select(-link, -review)
+head(p4kdata)</code></pre>
+<pre><code>##             artist                                              album
+## 1      David Byrne â\200œâ\200¦The Best Live Show of All Timeâ\200\235 â\200” NME EP
+## 2        DJ Healer                  Lost Lovesongs / Lostsongs Vol. 2
+## 3      Jorge Velez                                        Roman Birds
+## 4          Chandra                                 Transportation EPs
+## 5 The Chainsmokers                                           Sick Boy
+## 6   Silent Servant                        Shadows of Death and Desire
+##        genre score            date            author                role bnm
+## 1       Rock   5.5 January 11 2019         Andy Beta         Contributor   0
+## 2 Electronic   6.2 January 11 2019       Chal Ravens         Contributor   0
+## 3 Electronic   7.9 January 10 2019  Philip Sherburne Contributing Editor   0
+## 4       Rock   7.8 January 10 2019         Andy Beta         Contributor   0
+## 5 Electronic   3.1  January 9 2019 Larry Fitzmaurice         Contributor   0
+## 6 Electronic   7.8  January 9 2019      Harley Brown         Contributor   0
+##                  label release_year
+## 1             Nonesuch         2018
+## 2        Planet Uterus         2019
+## 3        Self-released         2019
+## 4  Telephone Explosion         2018
+## 5   Disruptor,Columbia         2018
+## 6 Hospital Productions         2018</code></pre>
+<p>Here I change data classes and formats, reorder all of the data by date of review and fix some formatting issues.</p>
+<pre class="r"><code>p4kdata$artist &lt;- as.character(p4kdata$artist)
 p4kdata$date &lt;- as.Date(p4kdata$date, format = &quot;%B %d %Y&quot;)
 p4kdata &lt;- p4kdata[order(desc(p4kdata$date)),]
 p4kdata$author &lt;- p4kdata$author %&gt;% 
@@ -401,7 +426,7 @@ p4kdata$label &lt;- gsub(&quot;/&quot;, &quot; &quot;, p4kdata$label)
 p4kdata$label &lt;- gsub(&quot;[^0-9a-z[[:space:]]]&quot;, &quot;&quot;, p4kdata$label)
 p4kdata$label &lt;- gsub(&quot;self-released &quot;, &quot;&quot;, p4kdata$label)
 p4kdata$label &lt;- gsub(&quot; self-released&quot;, &quot;&quot;, p4kdata$label)</code></pre>
-<p>FOr the review authors, there were some spelling errors detected that had to be corrected. Finally, in the last line of code, I also assigned artists with no names to <code>NA</code>.</p>
+<p>For the review authors, there were some spelling errors detected that had to be corrected. Finally, in the last line of code, I also assigned artists with no names to <code>NA</code>.</p>
 <pre class="r"><code>p4kdata$author[p4kdata$author==&quot;DrAndyBeta&quot;] &lt;- &quot;AndyBeta&quot;
 p4kdata$author[p4kdata$author==&quot;DrewGaerig&quot;] &lt;- &quot;AndrewGaerig&quot;
 p4kdata$author[p4kdata$author==&quot;StephenMDeusner&quot;] &lt;- &quot;StephenDeusner&quot;
@@ -416,6 +441,236 @@ p4kdata$author[p4kdata$author==&quot;MarcusJMoore&quot;] &lt;- &quot;MarcusMoore
 p4kdata$author[p4kdata$author==&quot;JeremyDLarson&quot;] &lt;- &quot;JeremyLarson&quot;
 
 p4kdata$artist[p4kdata$artist==&quot;&quot;] &lt;- &quot;NA&quot;</code></pre>
+</div>
+<div id="writing-functions" class="section level2">
+<h2>Writing Functions</h2>
+<p>Next I look to creating new variables that will, potentially, become predictors in my model. This will involve writing functions, using for-loops, etc. Here I create a variable with all artist’s names.</p>
+<pre class="r"><code>artistnames &lt;- unique(p4kdata$artist)</code></pre>
+<p>First, I will create a variable <code>PrevTotal</code> which has the total number of previous reviews the artist has had.</p>
+<pre class="r"><code>PrevTotalfn &lt;- function(name){
+  artist &lt;&lt;- p4kdata[p4kdata$artist==name,]
+  y &lt;&lt;- NULL
+  for(x in 1:nrow(artist)){
+    z &lt;- sum(artist$date &lt; artist$date[x])
+    y &lt;- c(y,z)
+  }
+  oneartist &lt;&lt;- cbind(artist, PrevTotal = y)
+}
+
+p4kdata2 &lt;- lapply(artistnames, PrevTotalfn)
+p4kdata2 &lt;- bind_rows(p4kdata2)</code></pre>
+<p>Now a variable <code>PrevBNMTotal</code> which has the total number of BNMs previously given to the artist.</p>
+<pre class="r"><code>PrevBNMTotalfn &lt;- function(name){
+  artist &lt;&lt;- p4kdata2[p4kdata2$artist==name,]
+  y &lt;&lt;- NULL
+  for(x in 1:nrow(artist)){
+    a &lt;- artist[artist$date &lt; artist$date[x],]
+    b &lt;- sum(a$bnm)
+    y &lt;- c(y,b)
+  }
+  oneartist &lt;&lt;- cbind(artist, PrevBNMTotal = y)
+}
+
+p4kdata3 &lt;- lapply(artistnames, PrevBNMTotalfn)
+p4kdata3 &lt;- bind_rows(p4kdata3)</code></pre>
+<p>Now a variable <code>PrevScore</code> which is the score given to the artist’s most recently reviewed album.</p>
+<pre class="r"><code>PrevScorefn &lt;- function(name){
+  artist &lt;&lt;- p4kdata3[p4kdata3$artist==name,]
+  y &lt;&lt;- NULL
+  if(nrow(artist)==1){
+    y &lt;- NA
+    oneartist &lt;- cbind(artist, PrevScore = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      a &lt;- artist[x+1,]
+      b &lt;- a$score
+      y &lt;- c(y,b)
+    }
+    y &lt;- c(y, NA)
+    oneartist &lt;- cbind(artist, PrevScore = y)
+  }
+}
+
+p4kdata4 &lt;- lapply(artistnames, PrevScorefn)
+p4kdata4 &lt;- bind_rows(p4kdata4)</code></pre>
+<p>Now a variable <code>PrevScoreAvg</code> which is the mean of all of the artists previously received scores.</p>
+<pre class="r"><code>PrevScoreAvgfn &lt;- function(name){
+  artist &lt;&lt;- p4kdata4[p4kdata4$artist==name,]
+  y &lt;&lt;- NULL
+  if(nrow(artist)==1){
+    y &lt;- NA
+    oneartist &lt;- cbind(artist, PrevScoreAvg = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      a &lt;- artist[(x+1):nrow(artist),]
+      b &lt;- mean(a$score)
+      y &lt;- c(y,b)
+    }
+    y &lt;- c(y, NA)
+    oneartist &lt;- cbind(artist, PrevScoreAvg = y)
+  }
+}
+
+p4kdata5 &lt;- lapply(artistnames, PrevScoreAvgfn)  
+p4kdata5 &lt;- bind_rows(p4kdata5)  </code></pre>
+<p>Now a variable <code>PrevAuthorSame</code> which indicates whether the previous review for the artist was written by the same author or not.</p>
+<pre class="r"><code>PrevAuthorSamefn &lt;- function(name){
+  artist &lt;&lt;- p4kdata5[p4kdata5$artist==name,]
+  y &lt;&lt;- NULL
+  if(nrow(artist)==1){
+    y &lt;- FALSE
+    oneartist &lt;- cbind(artist, PrevAuthorSame = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      b &lt;- identical(artist$author[x], artist$author[x+1])
+      y &lt;- c(y,b)
+    }
+    y &lt;- c(y, FALSE)
+    oneartist &lt;- cbind(artist, PrevAuthorSame = y)
+  }
+}
+
+p4kdata6 &lt;- lapply(artistnames, PrevAuthorSamefn)  
+p4kdata6 &lt;- bind_rows(p4kdata6)  </code></pre>
+<p>Now a variable <code>PrevAuthorSameTotal</code> which indicates the number of times the same author has previously reviewd this artist.</p>
+<pre class="r"><code>PrevAuthorSameTotalfn &lt;- function(name){
+  artist &lt;&lt;- p4kdata6[p4kdata6$artist==name,]
+  y &lt;&lt;- NULL
+  if(nrow(artist)==1){
+    y &lt;- 0
+    oneartist &lt;- cbind(artist, PrevAuthorSameTotal = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      b &lt;- sum(artist$author[x]==artist$author[(x+1):nrow(artist)])
+      y &lt;- c(y,b)
+    }
+    y &lt;- c(y, 0)
+    oneartist &lt;- cbind(artist, PrevAuthorSameTotal = y)
+  }
+}
+
+p4kdata7 &lt;- lapply(artistnames, PrevAuthorSameTotalfn)  
+p4kdata7 &lt;- bind_rows(p4kdata7)  </code></pre>
+<p>Now a variable <code>TimeSincePrev</code> which shows how many days have elapsed since the artist was last reviewed.</p>
+<pre class="r"><code>TimeSincePrevfn &lt;- function(name){
+  artist &lt;&lt;- p4kdata7[p4kdata7$artist==name,]
+  y &lt;&lt;- NULL
+  if(nrow(artist)==1){
+    y &lt;- NA
+    oneartist &lt;- cbind(artist, TimeSincePrev = y)
+  } else {
+    for(x in 1:(nrow(artist)-1)){
+      b &lt;- artist$date[x]-artist$date[x+1]
+      y &lt;- c(y,b)
+    }
+    y &lt;- c(y, NA)
+    oneartist &lt;- cbind(artist, TimeSincePrev = y)
+  }
+}
+
+p4kdata8 &lt;- lapply(artistnames, TimeSincePrevfn)
+p4kdata8 &lt;- bind_rows(p4kdata8)</code></pre>
+<p>Now a variable <code>PrevTwoScoreChange</code> which shows the percentage growth or decline in score over the two reviews prior.</p>
+<pre class="r"><code>PrevTwoScoreChangefn &lt;- function(name){
+  artist &lt;&lt;- p4kdata8[p4kdata8$artist==name,]
+  y &lt;&lt;- NULL
+  if(nrow(artist) &lt;= 2){
+    y &lt;- NA
+    oneartist &lt;- cbind(artist, PrevTwoScoreChange = y)
+  } else {
+    for(x in 1:(nrow(artist)-2)){
+      b &lt;- artist$score[x+1]/artist$score[x+2]
+      y &lt;- c(y,b)
+    }
+    y &lt;- c(y, NA, NA)
+    oneartist &lt;- cbind(artist, PrevTwoScoreChange = y)
+  }
+}
+
+p4kdata9 &lt;- lapply(artistnames, PrevTwoScoreChangefn)
+p4kdata9 &lt;- bind_rows(p4kdata9)</code></pre>
+<p>Now a variable <code>PrevTwoScoreAppreciated</code> which indicates whether the two scores prior showed an increase or a decrease in score.</p>
+<pre class="r"><code>p4kdata9 &lt;- p4kdata9 %&gt;% mutate(PrevTwoScoreAppreciated = PrevTwoScoreChange &gt; 1)</code></pre>
+<p>Now variables for genre. Originally, in the data, we have a <code>genre</code> variable, however problems arise as, in many cases, more than one genre is assigned to each album. For instance, see below.</p>
+<pre class="r"><code>p4kdata[104,]</code></pre>
+<pre><code>##           artist   album   genre score             date         author
+## 104 Mariah Carey Caution Pop/R&amp;B   7.5 November 22 2018 Maura Johnston
+##            role bnm        label release_year
+## 104 Contributor   0 Epic Records         2018</code></pre>
+<p>Thus I create a separate variable for each genre indicating whether this genre, be it alone or alongside other genres, appears in the album’s genre tag.</p>
+<pre class="r"><code>p4kdata9 &lt;- p4kdata9 %&gt;% mutate(GenreElectronic = grepl(&quot;Electronic&quot;, p4kdata9$genre),
+                                GenreExperimental = grepl(&quot;Experimental&quot;, p4kdata9$genre),
+                                GenreFolk = grepl(&quot;Folk&quot;, p4kdata9$genre),
+                                GenreCountry = grepl(&quot;Country&quot;, p4kdata9$genre),
+                                GenreGlobal = grepl(&quot;Global&quot;, p4kdata9$genre),
+                                GenreRock = grepl(&quot;Rock&quot;, p4kdata9$genre),
+                                GenreMetal = grepl(&quot;Metal&quot;, p4kdata9$genre),
+                                GenreRandB = grepl(&quot;R&amp;B&quot;, p4kdata9$genre),
+                                GenrePop = grepl(&quot;Pop&quot;, p4kdata9$genre),
+                                GenreRap = grepl(&quot;Rap&quot;, p4kdata9$genre),
+                                GenreJazz = grepl(&quot;Jazz&quot;, p4kdata9$genre))</code></pre>
+<p>Now, using for-loops this time, a variable <code>LabelAvg</code> showing what the average of previous scores of reviews for this label is.</p>
+<pre class="r"><code>p4kdata9 &lt;- p4kdata9 %&gt;% add_column(LabelAvg = NA)
+
+for(x in 1:nrow(p4kdata9)){
+  datecutset &lt;- p4kdata9 %&gt;% slice(-x) %&gt;% filter(date &lt;= p4kdata9[x,]$date)
+  labelnames &lt;- strsplit(p4kdata9[x,]$label, &quot; &quot;)[[1]]
+  a &lt;- NULL
+  for(y in 1:length(labelnames)){
+    b &lt;- datecutset[grepl(paste0(&quot;\\b&quot;, labelnames[y], &quot;\\b&quot;), datecutset$label),]
+    a &lt;- rbind(a, b)
+  }
+  a &lt;- a[!duplicated(a),]
+  p4kdata9[x,]$LabelAvg &lt;- mean(a$score)
+}</code></pre>
+<p>Now a variable <code>LabelPrev</code> which shows the score that this label’s previous review received.</p>
+<pre class="r"><code>p4kdata9 &lt;- p4kdata9 %&gt;% add_column(LabelPrev = NA)
+
+for(x in 1:nrow(p4kdata9)){
+  datecutset &lt;- p4kdata9 %&gt;% slice(-x) %&gt;% filter(date &lt;= p4kdata9[x,]$date)
+  labelnames &lt;- strsplit(p4kdata9[x,]$label, &quot; &quot;)[[1]]
+  a &lt;- NULL
+  for(y in 1:length(labelnames)){
+    b &lt;- datecutset[grepl(paste0(&quot;\\b&quot;, labelnames[y], &quot;\\b&quot;), datecutset$label),]
+    a &lt;- rbind(a, b)
+  }
+  a &lt;- a[!duplicated(a),]
+  a &lt;- a %&gt;% arrange(desc(date))
+  p4kdata9[x,]$LabelPrev &lt;- a[1,]$score
+}</code></pre>
+<p>Now a variable <code>LabelTotal</code> which shows the total of how many reviews the label has previously received.</p>
+<pre class="r"><code>p4kdata9 &lt;- p4kdata9 %&gt;% add_column(LabelTotal = NA)
+
+for(x in 1:nrow(p4kdata9)){
+  datecutset &lt;- p4kdata9 %&gt;% slice(-x) %&gt;% filter(date &lt;= p4kdata9[x,]$date)
+  labelnames &lt;- strsplit(p4kdata9[x,]$label, &quot; &quot;)[[1]]
+  a &lt;- NULL
+  for(y in 1:length(labelnames)){
+    b &lt;- datecutset[grepl(paste0(&quot;\\b&quot;, labelnames[y], &quot;\\b&quot;), datecutset$label),]
+    a &lt;- rbind(a, b)
+  }
+  a &lt;- a[!duplicated(a),]
+  p4kdata9[x,]$LabelTotal &lt;- nrow(a)
+}
+
+p4kdata9[p4kdata9$label==&quot;self-released&quot;,]$LabelTotal &lt;- 0</code></pre>
+<p>I save as an r-object for ease of future use.</p>
+<pre class="r"><code>saveRDS(p4kdata9, &quot;./p4knewdata.rds&quot;)</code></pre>
+<p>Finally, let’s take a look at the same entry we saw early with the new variables added.</p>
+<pre class="r"><code>p4knewdata &lt;- readRDS(&quot;./p4knewdata.rds&quot;)
+p4knewdata[which(p4knewdata$album==p4kdata[104,]$album),]</code></pre>
+<pre><code>##            artist   album   genre score       date        author        role
+## 1081 Mariah Carey Caution Pop/R&amp;B   7.5 2018-11-22 MauraJohnston Contributor
+##      bnm       label release_year PrevTotal PrevBNMTotal PrevScore PrevScoreAvg
+## 1081   0 epicrecords         2018         2            0       7.9          7.8
+##      PrevAuthorSame PrevAuthorSameTotal TimeSincePrev PrevTwoScoreChange
+## 1081          FALSE                   0           347           1.025974
+##      PrevTwoScoreAppreciated GenreElectronic GenreExperimental GenreFolk
+## 1081                    TRUE           FALSE             FALSE     FALSE
+##      GenreCountry GenreGlobal GenreRock GenreMetal GenreRandB GenrePop GenreRap
+## 1081        FALSE       FALSE     FALSE      FALSE       TRUE     TRUE    FALSE
+##      GenreJazz LabelAvg LabelPrev LabelTotal
+## 1081     FALSE     6.82       7.1          5</code></pre>
 </div>
 
 
