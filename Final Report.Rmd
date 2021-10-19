@@ -125,7 +125,7 @@ p4kdata2 <- lapply(artistnames, PrevTotalfn)
 p4kdata2 <- bind_rows(p4kdata2)
 ```
 
-Now a variable `PrevBNMTotal` which has the total number of BNMs previously given to the artist.
+Now a variable `PrevBNMTotal` which has the total number of BNMs (Best New Music) previously given to the artist.
 ```{r, eval=FALSE}
 PrevBNMTotalfn <- function(name){
   artist <<- p4kdata2[p4kdata2$artist==name,]
@@ -165,7 +165,7 @@ p4kdata4 <- lapply(artistnames, PrevScorefn)
 p4kdata4 <- bind_rows(p4kdata4)
 ```
 
-Now a variable `PrevScoreAvg` which is the mean of all of the artists previously received scores.
+Now a variable `PrevScoreAvg` which is the mean of all of the artist's previously received scores.
 ```{r, eval=FALSE}
 PrevScoreAvgfn <- function(name){
   artist <<- p4kdata4[p4kdata4$artist==name,]
@@ -210,7 +210,7 @@ p4kdata6 <- lapply(artistnames, PrevAuthorSamefn)
 p4kdata6 <- bind_rows(p4kdata6)  
 ```
 
-Now a variable `PrevAuthorSameTotal` which indicates the number of times the same author has previously reviewd this artist.
+Now a variable `PrevAuthorSameTotal` which indicates the number of times the same author has previously reviewed this artist.
 ```{r, eval=FALSE}
 PrevAuthorSameTotalfn <- function(name){
   artist <<- p4kdata6[p4kdata6$artist==name,]
@@ -360,7 +360,7 @@ I save as an r-object for ease of future use.
 saveRDS(p4kdata9, "./p4knewdata.rds")
 ```
 
-Finally, let's take a look at the same entry we saw early with the new variables added.
+Finally, let's take a look at the same entry we saw earlier with the new variables added.
 ```{r}
 p4knewdata <- readRDS("./p4knewdata.rds")
 p4knewdata[which(p4knewdata$album==p4kdata[104,]$album),]
@@ -562,7 +562,7 @@ Along with the confirmation of previous observations, the average score of the l
 
 Thus, it can be concluded that previous scores the artist received are the best indicators, the label that released the album are the next best, and the genre is the third. The author of the review may also provide some indication too.
 
-Some interesting points to note in terms of genre are that experimental music generally receives the most positive scoring, rock music fares the most poorly, while global, jazz, folk and country receive slight positive favoring, and electronic, rap, pop and r&b receive slight negative treatment. However it must be mentioned that, as can be seen in the previous plots, the genres that are reviewed the least are the ones that have a positive correlation, with the exception of experimental music. It is reviewed a fair amount and is the standout correlated genre. This makes it absolutely the most interesting case. Metal is the only genre that has a correlation of less than 0.02 and is in fact so close to 0 that it would be fair to conclude that there is absolutely no bias for or against metal music when scoring. 
+Some interesting points to note in terms of genre are that experimental music generally receives the most positive scoring, rock music fares the most poorly, while global, jazz, folk and country receive slight positive favoring, and electronic, rap, pop and r&b receive slight negative treatment. However it must be mentioned that, as can be seen in the previous plots, the genres that are reviewed the least are the ones that have a positive correlation, with the exception of experimental music; it is reviewed a fair amount and is the standout correlated genre. This makes it absolutely the most interesting case. Metal is the only genre that has a correlation of less than 0.02 and is in fact so close to 0 that it would be fair to conclude that there is absolutely no bias for or against metal music when scoring. 
 
 A final interesting and surprising observation is that the previous number of 'Best New Music' awards given to an album has correlation with score of less than 0.1. Since the 'Best New Music' award is given to music of an excellent standard and reviews that have a score of over 8.0, one might have expected it to have correlation with score similar to that of the previous score variables. This could be explained by the fact that such a large percentage of the data simply has 0 previous BNM awards. In spite of this observation, the variable is correlated enough that it remains of interest.
 
@@ -690,7 +690,7 @@ GBMfinalpred <- predict(GBMfit2, finaltest)
 mean(abs(GBMfinalpred-finaltest$score))
 ```
 
-The gbm model is likely to offer the highest accuracy so I select this one as my final prediction model.
+The gbm model is likely to offer the highest accuracy so I select this one as my final prediction model. Here are my concluding statements.
 
 - As expected, Pitchfork review scores are best predicted by the previous scores which the artist received.
 

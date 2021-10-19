@@ -2,7 +2,7 @@
 
 An independent data science project by James Kowalik completed in October 2021.
 
-Link to report: 
+Link to report: https://rpubs.com/jamesk185/824113
 
 ## Introduction
 
