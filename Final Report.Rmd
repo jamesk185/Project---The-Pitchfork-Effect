@@ -1,5 +1,5 @@
 ---
-title: "Pitchfork Score Prediction"
+title: "Pitchfork Scores Data Analysis and Prediction"
 author: "James Kowalik"
 date: "14/10/2021"
 output: 
@@ -10,7 +10,17 @@ output:
 
 ## Introduction
 
+Pitchfork is one of the most widely read online music magazines. It is most famed for its review scores and 'Best New Music' award system. It assigns a score from 0 to 10 to one decimal place for an album that is released and reviewed by one of their writers. An album which receives a score of higher than 8.0 will often receive 'Best New Music' status- an indicator that it is of particularly high quality and an award which holds a lot of influence in terms of the album's sales and credibility.
 
+The aim of this project will be to explore a dataset of Pitchfork reviews and, ultimately, build a prediction model that attempts to predict the score an album will get when reviewed by Pitchfork. Below, I note some aims, expectations and points of intrigue.
+
+- What is the average score awarded to an album and how does the distribution of scores look?
+
+- If biases exist, where are they? Genre? Review's author? 
+
+- My expectation is that the previous scores given to the artist will provide the best indication of score.
+
+- What predictors can be created to improve prediction? How much can prediction accuracy be improved from using just one predictor (based on previous score(s)) to using multiple?
 
 ## Cleaning the Data
 
@@ -361,8 +371,6 @@ p4knewdata[which(p4knewdata$album==p4kdata[104,]$album),]
 To begin with, I perform some final cleaning by removing albums by `Various Artists` and removing the variables `PrevTwoScoreAppreciated` and `PrevTwoScoreChange`. The reason for removing these variables is that they contain too many `NA` values and in removing the NAs the datasets become too small and thus the models less reliable. I then create a testing set to measure model proficiency against and a final test set to provide a final display of the model's work. Also note that the datasets were saved as R objects and I load them below, followed by showing the proportional size of the training set.
 
 ```{r, eval=FALSE}
-library(gridExtra)
-library(RColorBrewer)
 p4knewdata <- p4knewdata[p4knewdata$artist!="Various Artists",]
 TEST <- p4knewdata %>% filter(date < "2019-02-01", date > "2018-01-01") %>% select(-PrevTwoScoreAppreciated, -PrevTwoScoreChange)
 testing <- p4knewdata %>% filter(date <= "2018-01-01", date > "2014-01-01") %>% select(-PrevTwoScoreAppreciated, -PrevTwoScoreChange)
@@ -379,3 +387,319 @@ finaltest <- readRDS("./p4kfinaltest.rds")
 nrow(training)/(nrow(training)+nrow(testing))
 ```
 
+Next I confirm some of the features of the data.
+
+```{r}
+mean(p4knewdata$score)
+var(p4knewdata$score)
+quantile(p4knewdata$score, probs=c(0.025,0.975))
+```
+
+So pitchfork reviews have an average score of 7.0 with general variance of 1.6 around that mean. 95% of reviews fall in between scores of 3.8 and 9.0. Next I will look at a plot of the distribution of the data.
+
+```{r}
+upper <- mean(p4knewdata$score)+2*sd(p4knewdata$score)
+lower <- mean(p4knewdata$score)-2*sd(p4knewdata$score)
+inbounds <- p4knewdata %>% filter(score > lower, score < upper) %>% nrow
+inbounds/nrow(p4knewdata)
+
+p4knewdata %>% ggplot(aes(x=score)) +
+  geom_histogram(aes(y=..density..), binwidth=.5, color="black", fill="white") +
+  geom_density(alpha=.2, fill="#BB1111", bw=0.2) + 
+  geom_vline(xintercept=lower) +
+  geom_vline(xintercept=upper)
+```
+
+Clearly the scores follow a normal distribution and, as confirmed above, around 95% of scores fall within two standard deviations of the mean. 
+
+Next I will plot the individual variables each against the score in scatter plots. I won't include the code for plots `g2` to `g12` as it closely resembles that of `g1`. 
+
+```{r, message=FALSE, warning=FALSE}
+library(gridExtra)
+library(RColorBrewer)
+g1 <- p4knewdata %>% ggplot(aes(x=score, y=PrevTotal)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+```
+```{r, echo=FALSE}
+g2 <- p4knewdata %>% ggplot(aes(x=score, y=PrevBNMTotal)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+
+g3 <- p4knewdata %>% ggplot(aes(x=score, y=PrevScore)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+
+g4 <- p4knewdata %>% ggplot(aes(x=score, y=PrevScoreAvg)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+
+g5 <- p4knewdata %>% mutate(PrevAuthorSame = as.numeric(PrevAuthorSame)) %>%
+  ggplot(aes(x=score, y=PrevAuthorSame)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+
+g6 <- p4knewdata %>% ggplot(aes(x=score, y=PrevAuthorSameTotal)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+
+g7 <- p4knewdata %>% ggplot(aes(x=score, y=TimeSincePrev)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+
+g8 <- p4knewdata %>% ggplot(aes(x=score, y=PrevTwoScoreChange)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+
+g9 <- p4knewdata %>% mutate(PrevTwoScoreAppreciated = as.numeric(PrevTwoScoreAppreciated)) %>%
+  ggplot(aes(x=score, y=PrevTwoScoreAppreciated)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+
+g10 <- p4knewdata %>% ggplot(aes(x=score, y=LabelAvg)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+
+g11 <- p4knewdata %>% ggplot(aes(x=score, y=LabelPrev)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+
+g12 <- p4knewdata %>% ggplot(aes(x=score, y=LabelTotal)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color="#BB1111") +
+  geom_smooth(method='lm', col="black")
+```
+```{r, message=FALSE, warning=FALSE, fig.width=14, fig.height=12}
+grid.arrange(g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, nrow = 4)
+```
+
+As expected, the previous score and the average of all previous scores appear to have the highest correlations. The time elapsed since the previous review and the indicator of appreciation over the previous two scores appear to have little or no correlation. All other variables look to have some correlation albeit not such strong correlation. At this stage, whilst seeing stronger correlation would have provided more hope of being able to construct a highly accurate model further down the line, the amount of correlation seen in the plots certainly suggests that the variables should not be dismissed. 
+
+Next I similarly plot the genre variables against score. Again, I only share the code that produces the first plot.
+
+```{r, message=FALSE, warning=FALSE}
+colours <- brewer.pal(n = 12, name = "Paired")
+gg1 <- p4knewdata %>% mutate(GenreElectronic = as.numeric(GenreElectronic)) %>%
+  ggplot(aes(x=score, y=GenreElectronic)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[1]) +
+  geom_smooth(method='lm', col="black")
+```
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+gg2 <- p4knewdata %>% mutate(GenreExperimental = as.numeric(GenreExperimental)) %>%
+  ggplot(aes(x=score, y=GenreExperimental)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[2]) +
+  geom_smooth(method='lm', col="black")
+
+gg3 <- p4knewdata %>% mutate(GenreFolk = as.numeric(GenreFolk)) %>%
+  ggplot(aes(x=score, y=GenreFolk)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[3]) +
+  geom_smooth(method='lm', col="black")
+
+gg4 <- p4knewdata %>% mutate(GenreCountry = as.numeric(GenreCountry)) %>%
+  ggplot(aes(x=score, y=GenreCountry)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[4]) +
+  geom_smooth(method='lm', col="black")
+
+gg5 <- p4knewdata %>% mutate(GenreGlobal = as.numeric(GenreGlobal)) %>%
+  ggplot(aes(x=score, y=GenreGlobal)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[5]) +
+  geom_smooth(method='lm', col="black")
+
+gg6 <- p4knewdata %>% mutate(GenreRock = as.numeric(GenreRock)) %>%
+  ggplot(aes(x=score, y=GenreRock)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[6]) +
+  geom_smooth(method='lm', col="black")
+
+gg7 <- p4knewdata %>% mutate(GenreMetal = as.numeric(GenreMetal)) %>%
+  ggplot(aes(x=score, y=GenreMetal)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[7]) +
+  geom_smooth(method='lm', col="black")
+
+gg8 <- p4knewdata %>% mutate(GenreRandB = as.numeric(GenreRandB)) %>%
+  ggplot(aes(x=score, y=GenreRandB)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[8]) +
+  geom_smooth(method='lm', col="black")
+
+gg9 <- p4knewdata %>% mutate(GenrePop = as.numeric(GenrePop)) %>%
+  ggplot(aes(x=score, y=GenrePop)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[9]) +
+  geom_smooth(method='lm', col="black")
+
+gg10 <- p4knewdata %>% mutate(GenreRap = as.numeric(GenreRap)) %>%
+  ggplot(aes(x=score, y=GenreRap)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[10]) +
+  geom_smooth(method='lm', col="black")
+
+gg11 <- p4knewdata %>% mutate(GenreJazz = as.numeric(GenreJazz)) %>%
+  ggplot(aes(x=score, y=GenreJazz)) +
+  geom_point(position=position_jitter(h=0.1, w=0.1), alpha=.1, color=colours[12]) +
+  geom_smooth(method='lm', col="black")
+```
+```{r, message=FALSE, warning=FALSE, fig.width=14, fig.height=12}
+grid.arrange(gg1, gg2, gg3, gg4, gg5, gg6, gg7, gg8, gg9, gg10, gg11, nrow=4)
+```
+
+Here there are both negative and positive correlations with the apparent most highly correlated genres being experimental, rock and electronic.
+
+To confirm what was shown with regression lines in the previous plots, I calculate and tabulate the correlations between each variable and score. I first have to remove some infinite values from the `PrevTwoScoreChange` variable. I also save the table as an r object for later use.
+
+```{r, message=FALSE}
+p4knewdata2 <- p4knewdata[-which(is.infinite(p4knewdata$PrevTwoScoreChange)),]
+interestedvars <- p4knewdata %>% select(-score, -artist, -album, -genre, -date, -author, -role, -bnm, -label, -release_year) %>% names()
+
+corTable <- NULL
+for(x in interestedvars){
+  y <- p4knewdata2 %>% select(score, x) %>% na.omit() %>% cor()
+  corTable <- rbind(corTable, y)
+}
+corTable <- corTable[-seq(1, 2*length(interestedvars), by = 2),-2]
+corTable <- corTable %>% as.data.frame() %>% arrange(desc(.))
+colnames(corTable) <- "Correlation"
+saveRDS(corTable, "./corTable.rds")
+corTable
+```
+
+Along with the confirmation of previous observations, the average score of the label and the previous score the label received appear to be reasonably correlated too. 
+
+Thus, it can be concluded that previous scores the artist received are the best indicators, the label that released the album are the next best, and the genre is the third. The author of the review may also provide some indication too.
+
+Some interesting points to note in terms of genre are that experimental music generally receives the most positive scoring, rock music fares the most poorly, while global, jazz, folk and country receive slight positive favoring, and electronic, rap, pop and r&b receive slight negative treatment. However it must be mentioned that, as can be seen in the previous plots, the genres that are reviewed the least are the ones that have a positive correlation, with the exception of experimental music. It is reviewed a fair amount and is the standout correlated genre. This makes it absolutely the most interesting case. Metal is the only genre that has a correlation of less than 0.02 and is in fact so close to 0 that it would be fair to conclude that there is absolutely no bias for or against metal music when scoring. 
+
+A final interesting and surprising observation is that the previous number of 'Best New Music' awards given to an album has correlation with score of less than 0.1. Since the 'Best New Music' award is given to music of an excellent standard and reviews that have a score of over 8.0, one might have expected it to have correlation with score similar to that of the previous score variables. This could be explained by the fact that such a large percentage of the data simply has 0 previous BNM awards. In spite of this observation, the variable is correlated enough that it remains of interest.
+
+## Model Fitting
+
+The goal of the model fitting stage will be to see if much improvement can be made on a simple linear model that uses the average of the artist's previous review scores, the variable most highly correlated with score, as the sole predictor. So first I load the data and I create the simple model. 
+
+```{r, message=FALSE, warning=FALSE}
+library(caret)
+p4knewdata <- readRDS("./p4knewdata.rds")
+training <- readRDS("./p4ktraining.rds")
+testing <- readRDS("./p4ktesting.rds")
+finaltest <- readRDS("./p4kfinaltest.rds")
+corTable <- readRDS("./corTable.rds")
+
+PREVSCOREAVGONLYfit <- lm(score~PrevScoreAvg, data=training)
+PREVSCOREAVGONLYpred <- predict(PREVSCOREAVGONLYfit, testing)
+mean(abs(PREVSCOREAVGONLYpred-testing$score))
+```
+
+So the simple linear model with a single predictor has an average error of around 0.78 when tested against the testing dataset.
+
+Next I use the step function to find the best model that selects the best predictors. 
+
+```{r}
+corTable <- corTable[-grep("PrevTwoScore", rownames(corTable)),,drop=FALSE]
+interestedvars2 <- paste(rownames(corTable), collapse="+")
+
+step(lm(score~PrevScoreAvg+PrevScore+LabelAvg+LabelPrev+PrevBNMTotal+GenreExperimental+PrevAuthorSameTotal+PrevAuthorSame+PrevTotal+GenreJazz+GenreGlobal+LabelTotal+GenreFolk+GenreCountry+GenreMetal+TimeSincePrev+GenreRandB+GenrePop+GenreRap+GenreElectronic+GenreRock,
+        data=training),
+     direction = "both", trace=0)
+```
+
+I proceed to build the prediction model using the variables selected by the step function. 
+
+```{r}
+STEPfit <- lm(formula = score ~ PrevScoreAvg + PrevScore + LabelAvg + PrevBNMTotal + 
+                GenreExperimental + PrevAuthorSameTotal + LabelTotal + GenreRandB + 
+                GenreRap + GenreElectronic + GenreRock, data = training)
+STEPpred <- predict(STEPfit, testing)
+mean(abs(STEPpred-testing$score))
+```
+
+In this case the linear model has an average error of around 0.747 against the test data. This represents an improvement of 0.033. It's a small improvement but enough such that, epsecially when rounding to once decimal place is taken into consideration, it could be significant.
+
+Next I will try some more complicated models. First, I set a control variable that will ensure cross-validation is done by each model. I also remove the unnecessary variables so that only predictors and `score` are left.
+
+```{r}
+set.seed(211009)
+control <- trainControl(method="cv", number=3, verboseIter=F)
+training2 <- training %>% select(-artist, -album, -genre, -date, -author, -role, -bnm, -label, -release_year)
+```
+
+First I try a prediction trees model, second a random forest one and third a boosting one.
+
+```{r}
+TREEfit <- train(score~., method="rpart", data=training2, tuneLength = 50, trControl=control)
+TREEpred <- predict(TREEfit, testing)
+mean(abs(TREEpred-testing$score))
+```
+
+```{r}
+RFfit <- train(score~., method="rf", data=training2, trControl=control)
+RFpred <- predict(RFfit, testing)
+mean(abs(RFpred-testing$score))
+```
+
+```{r}
+GBMfit <- train(score~., method="gbm", data=training2, trControl=control, verbose=FALSE)
+GBMpred <- predict(GBMfit, testing)
+mean(abs(GBMpred-testing$score))
+```
+
+The boosting model has the lowest average error of around 0.75 which is similar to that of the linear model built earlier and represents an improvement of about 0.03 which is again small but has the potential to be significant. I proceed with the linear model and the gbm model.
+
+Next I look at some summaries to see if there are predictors that should be removed. First, I perform an analysis of variance test on the linear model.
+
+```{r}
+anova(STEPfit, test="Chisq")
+```
+
+The high p-values suggest that `GenreRandB` and `GenreRap` variables could be removed.
+
+```{r}
+STEPfit2 <- lm(formula = score ~ PrevScoreAvg + PrevScore + LabelAvg + PrevBNMTotal + 
+                GenreExperimental + PrevAuthorSameTotal + LabelTotal + GenreElectronic + GenreRock, data = training)
+STEPpred2 <- predict(STEPfit2, testing)
+mean(abs(STEPpred2-testing$score))
+```
+
+This marginally improves the accuracy of the model against the testing set.
+
+Next I look at the summary of the gbm model.
+
+```{r}
+summary(GBMfit, plotit=FALSE)
+```
+
+5 of the predictors appear not to have any influence on the model so they can be removed. Note that the nature of a gbm model means that the reported accuracy will differ each time the model is run.
+
+```{r}
+GBMfit2 <- train(score~PrevScoreAvg+PrevScore+LabelAvg+TimeSincePrev+LabelTotal+LabelPrev+GenreExperimental+PrevAuthorSameTotal+GenreElectronic+PrevTotal+GenreRock+GenreRap+GenreFolk+GenreRandB+GenreMetal+PrevBNMTotal, method="gbm", data=training2, trControl=control, verbose=FALSE)
+GBMpred2 <- predict(GBMfit2, testing)
+mean(abs(GBMpred2-testing$score))
+```
+
+The linear and gbm model have similar accuracy so I will proceed with both and do a final test with the previously designated `finaltest` data.
+
+## Conclusions
+
+First I perform a final test with the two models and note the accuracy. I also include the linear model with one predictor to give a final comparison.
+
+```{r}
+PREVSCOREAVGONLYfinalpred <- predict(PREVSCOREAVGONLYfit, finaltest)
+mean(abs(PREVSCOREAVGONLYfinalpred-finaltest$score))
+```
+
+```{r}
+STEPfinalpred <- predict(STEPfit2, finaltest)
+mean(abs(STEPfinalpred-finaltest$score))
+```
+
+```{r}
+GBMfinalpred <- predict(GBMfit2, finaltest)
+mean(abs(GBMfinalpred-finaltest$score))
+```
+
+The gbm model is likely to offer the highest accuracy so I select this one as my final prediction model.
+
+- As expected, Pitchfork review scores are best predicted by the previous scores which the artist received.
+
+- The label the album was released on serves as a reasonable predictor, while the genre has some influence and the author of the review has a little.
+
+- Within the genres, there is positive bias towards any album that has a genre tag that includes 'experimental'.
+
+- A simple model with just one predictor, the average of the artist's previous review scores, sees an average error of around 0.8.
+
+- A boosting model involving a host of predictors can improve average prediction accuracy by between 0.03 and 0.04.
+
+Whilst I may have hoped for a higher amount of improvement with models that included the predictors I created, the improvement shows that, among Pitchfork reviews, there do exist tendencies and potential biases. A final note is that of course there are outside influences that could impact a score, but, with access to and selection of that data being quite a task, I chose to stick to only data afforded by the Pitchfork reviews themselves.

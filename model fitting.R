@@ -62,12 +62,22 @@ summary(GBMfit)
 anova(STEPfit, test="Chisq")
 
 STEPfit2 <- lm(formula = score ~ PrevScoreAvg + PrevScore + LabelAvg + PrevBNMTotal + 
-                GenreExperimental + PrevAuthorSameTotal + LabelTotal + GenreElectronic + GenreRock, data = training)
+                 GenreExperimental + PrevAuthorSameTotal + LabelTotal + GenreRandB + 
+                 GenreRap + GenreElectronic + GenreRock, data = training)
 STEPpred2 <- predict(STEPfit2, testing)
 mean(abs(STEPpred2-testing$score))
 
 summary(STEPfit2)
 anova(STEPfit2, test="Chisq")
 
+GBMfit2 <- train(score~PrevScoreAvg+PrevScore+LabelAvg+TimeSincePrev+LabelTotal+LabelPrev+GenreExperimental+PrevAuthorSameTotal+GenreElectronic+PrevTotal+GenreRock+GenreRap+GenreFolk+GenreRandB+GenreMetal+PrevBNMTotal, method="gbm", data=training2, trControl=control, verbose=FALSE)
+GBMpred2 <- predict(GBMfit2, testing)
+mean(abs(GBMpred2-testing$score))
 
+summary(GBMfit2)
 
+GBMfit3 <- train(score~PrevScoreAvg+PrevScore+LabelAvg+TimeSincePrev+LabelTotal+LabelPrev+GenreExperimental+PrevAuthorSameTotal+GenreElectronic+PrevTotal+GenreRock+GenreRap+GenreRandB+PrevBNMTotal, method="gbm", data=training2, trControl=control, verbose=FALSE)
+GBMpred3 <- predict(GBMfit3, testing)
+mean(abs(GBMpred3-testing$score))
+
+summary(GBMfit3)
